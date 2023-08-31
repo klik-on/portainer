@@ -11,7 +11,10 @@ docker run -d -p 8000:8000 -p 9443:9443 --name portainer \
     --restart=always \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v portainer_data:/data \
-    portainer/portainer-ce:latest
+    -v ./certs:/certs \
+    portainer/portainer-ce:latest \
+    --sslcert /certs/fullchain.pem \
+    --sslkey /certs/privkey.pem
 
 webport http => 8080
 docker run -d -p 8000:8000 -p 8080:9000 --name portainer --restart=always \
