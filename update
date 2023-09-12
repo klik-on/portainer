@@ -19,6 +19,23 @@ sudo usermod -aG docker ${USER}
 su - ${USER}
 docker
 
+18.04 LTS
+sudo apt update 
+sudo apt install apt-transport-https ca-certificates curl gnupg-agent software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" 
+sudo apt update 
+sudo apt install docker-ce 
+sudo apt install docker-compose 
+sudo systemctl start docker 
+sudo systemctl enable docker
+sudo usermod -aG docker ${USER}
+su - ${USER}
+id -nG
+docker --version
+sudo usermod -aG docker username
+
+### PORTAINER
 docker container stop portainer && \
 docker container rm portainer && \
 docker volume rm portainer_data
