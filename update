@@ -37,6 +37,16 @@ id -nG
 docker --version
 sudo usermod -aG docker username
 
+### HAPUS CACHE
+Reff : 
+https://renehernandez.io/snippets/cleaning-local-docker-cache/
+https://collabnix.com/how-to-clear-docker-cache/
+To remove containers, images and networks use:
+docker system prune
+To remove containers, images, networks and volumes, use
+docker system prune --volumes
+
+
 ### PORTAINER
 docker container stop portainer && \
 docker container rm portainer && \
