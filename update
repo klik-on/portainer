@@ -52,6 +52,7 @@ https://dockerlabs.collabnix.com/beginners/saving-images-as-tar/
 $ docker ps -a
 CONTAINER ID   IMAGE                            NAMES
 8a7bd2314e57   arcgis/webadaptor:10.9.1         WEBADAPTOR   
+b59a0e2081d8   arcgis/portal:10.9.1             PORTAL
 $ docker export 8a7bd2314e57 > webadaptor.tar
 $ ssh => target
 $ mkdir src 
