@@ -46,6 +46,24 @@ docker system prune
 To remove containers, images, networks and volumes, use
 docker system prune --volumes
 
+### Backup/Restore
+Reff:
+https://dockerlabs.collabnix.com/beginners/saving-images-as-tar/
+$ docker ps -a
+CONTAINER ID   IMAGE                            NAMES
+8a7bd2314e57   arcgis/webadaptor:10.9.1         WEBADAPTOR   
+$ docker export 8a7bd2314e57 > webadaptor.tar
+$ ssh => target
+$ mkdir src 
+$ cd src
+$ scp user@IP:/home/ags/webadaptor.tar .
+$ docker import - arcgis/webadaptor:10.9.1 < webadaptor.tar
+sha256:87cb0c6f3056053babfd625c7528c2bead824ea7534506e5d3efae1df0c6a371
+$ docker images
+REPOSITORY                  TAG       IMAGE ID       CREATED          SIZE
+arcgis/webadaptor           10.9.1    87cb0c6f3056   27 seconds ago   1.16GB
+
+
 
 ### PORTAINER
 docker container stop portainer && \
