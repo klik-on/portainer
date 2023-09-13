@@ -69,10 +69,28 @@ $ docker import - arcgis/webadaptor:10.9.1 < webadaptor.tar
 sha256:87cb0c6f3056053babfd625c7528c2bead824ea7534506e5d3efae1df0c6a371
 $ docker import - arcgis/portal:10.9.1 < ags_portal.tar
 
+#### bisa digunakan
 $ docker images
-REPOSITORY                  TAG       IMAGE ID       CREATED          SIZE
-arcgis/webadaptor           10.9.1    87cb0c6f3056   27 seconds ago   1.16GB
+REPOSITORY                  TAG       IMAGE ID       CREATED        SIZE
+arcgis/webadaptor           10.9.1    073f023152a2   12 days ago    796MB
+arcgis/portal               10.9.1    f65bb3b85c0e   8 months ago   19.7GB
+arcgis/server               10.9.1    9326b1a8f196   8 months ago   17.9GB
+arcgis/datastore            10.9.1    2f9fb391f2a2   8 months ago   7.03GB
 
+$ docker save -o webadaptor.tar arcgis/webadaptor
+$ docker save -o ags_portal.tar arcgis/portal
+$ docker save -o ags_server.tar arcgis/server
+$ docker save -o datastore.tar arcgis/datastore
+
+$ ssh => target
+$ mkdir bck 
+$ cd bck
+$ scp user@IP:/home/ags/bck/*.tar .
+$ docker load < webadaptor.tar
+
+$ docker images
+REPOSITORY                  TAG       IMAGE ID       CREATED        SIZE
+arcgis/webadaptor           10.9.1    073f023152a2   12 days ago    796MB
 
 
 ### PORTAINER
