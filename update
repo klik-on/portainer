@@ -53,13 +53,22 @@ $ docker ps -a
 CONTAINER ID   IMAGE                            NAMES
 8a7bd2314e57   arcgis/webadaptor:10.9.1         WEBADAPTOR   
 b59a0e2081d8   arcgis/portal:10.9.1             PORTAL
+db22d2e146b0   arcgis/server:10.9.1             SERVER
+ba74ee865ccf   arcgis/datastore:10.9.1          DATASTORE
+
 $ docker export 8a7bd2314e57 > webadaptor.tar
+$ docker export b59a0e2081d8 > ags_portal.tar
+$ docker export db22d2e146b0 > ags_server.tar
+$ docker export ba74ee865ccf > datastore.tar
+
 $ ssh => target
-$ mkdir src 
-$ cd src
-$ scp user@IP:/home/ags/webadaptor.tar .
+$ mkdir bck 
+$ cd bck
+$ scp user@IP:/home/ags/bck/webadaptor.tar .
 $ docker import - arcgis/webadaptor:10.9.1 < webadaptor.tar
 sha256:87cb0c6f3056053babfd625c7528c2bead824ea7534506e5d3efae1df0c6a371
+$ docker import - arcgis/portal:10.9.1 < ags_portal.tar
+
 $ docker images
 REPOSITORY                  TAG       IMAGE ID       CREATED          SIZE
 arcgis/webadaptor           10.9.1    87cb0c6f3056   27 seconds ago   1.16GB
