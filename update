@@ -93,7 +93,7 @@ REPOSITORY                  TAG       IMAGE ID       CREATED        SIZE
 arcgis/webadaptor           10.9.1    073f023152a2   12 days ago    796MB
 
 
-### PORTAINER
+### PORTAINER 
 docker container stop portainer && \
 docker container rm portainer && \
 docker volume rm portainer_data
@@ -102,6 +102,13 @@ $ docker image rm 728247220223
 # http only port 9000:9000
 # docker volume create portainer
 # docker run -d -p 9000:9000 --name Portainer --restart always -v /var/run/docker.sock:/var/run/docker.sock -v portainer:/data portainer/portainer-ce:latest
+
+http+https port 9000:9000  9443:9443
+$ sudo docker run -d -p 9000:9000 -p 9443:9443 --name portainer \
+    --restart=always \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v portainer_data:/data \
+    portainer/portainer-ce:latest
 
 docker run -d -p 8000:8000 -p 9443:9443 --name portainer \
     --restart=always \
