@@ -3,9 +3,9 @@
 CONTAINER_NAME="portainer_agent"
 IMAGE_NAME="portainer/agent"
 
-echo "====================================="
-echo "   AUTO UPDATE PORTAINER AGENT (FIX)"
-echo "====================================="
+echo "================================="
+echo "   AUTO UPDATE PORTAINER AGENT  "
+echo "================================="
 
 # ==============================
 # Ambil versi terbaru
