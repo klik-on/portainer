@@ -154,6 +154,11 @@ $ sudo docker image ls
 $ sudo docker image rm 728247220223
 
 ### Menggunakan Portainer Agent
+### Hapus
+docker stop portainer_agent
+docker rm portainer_agent
+docker rmi portainer/agent:2.33.4
+###
 # di Portainer Agent
 docker run -d \
   -p 9001:9001 \
