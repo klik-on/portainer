@@ -8,7 +8,7 @@ echo "   AUTO UPDATE PORTAINER AGENT (FIX)"
 echo "====================================="
 
 # ==============================
-#  Ambil versi terbaru (paginate-safe)
+# Ambil versi terbaru
 # ==============================
 echo "[+] Mengambil versi terbaru dari Docker Hub..."
 
@@ -27,24 +27,36 @@ fi
 echo "[+] Versi terbaru: $LATEST_VERSION"
 
 # ==============================
-# Ambil versi yang sedang dipakai
+# Ambil versi yang sedang berjalan
 # ==============================
 CURRENT_VERSION=$(docker inspect -f '{{.Config.Image}}' $CONTAINER_NAME 2>/dev/null | awk -F ":" '{print $2}')
 
 echo "[+] Versi saat ini: ${CURRENT_VERSION:-Tidak ditemukan}"
 
 if [ "$CURRENT_VERSION" == "$LATEST_VERSION" ]; then
-    echo "[✓] Sudah versi terbaru."
+    echo "[✓] Sudah versi terbaru. Menghapus image lama..."
+
+    OLD_IMAGES=$(docker images $IMAGE_NAME --format "{{.ID}} {{.Tag}}" \
+      | grep -v "$LATEST_VERSION" \
+      | awk '{print $1}')
+
+    if [ -z "$OLD_IMAGES" ]; then
+        echo "[✓] Tidak ada image lama."
+    else
+        echo "$OLD_IMAGES" | xargs -r docker rmi
+        echo "[✓] Image lama berhasil dibersihkan."
+    fi
+
     exit 0
 fi
 
 # ==============================
-# Ambil environment lama (AGENT_SECRET dll)
+# Simpan environment lama (AGENT_SECRET, dsb)
 # ==============================
 ENV_OPTS=$(docker inspect -f '{{range .Config.Env}}{{printf "-e %q " .}}{{end}}' $CONTAINER_NAME 2>/dev/null)
 
 # ==============================
-# Stop container lama
+# Hentikan container lama
 # ==============================
 if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
     echo "[+] Menghentikan container lama..."
@@ -53,13 +65,29 @@ if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
 fi
 
 # ==============================
-# Pull versi terbaru
+# Download versi terbaru
 # ==============================
-echo "[+] Download image baru..."
+echo "[+] Pull image baru..."
 docker pull $IMAGE_NAME:$LATEST_VERSION
 
 # ==============================
-# Jalankan Portainer Agent
+# Hapus image lama
+# ==============================
+echo "[+] Menghapus image versi lama..."
+
+OLD_IMAGES=$(docker images $IMAGE_NAME --format "{{.ID}} {{.Tag}}" \
+  | grep -v "$LATEST_VERSION" \
+  | awk '{print $1}')
+
+if [ -z "$OLD_IMAGES" ]; then
+    echo "[✓] Tidak ada image lama."
+else
+    echo "$OLD_IMAGES" | xargs -r docker rmi
+    echo "[✓] Image lama berhasil dihapus."
+fi
+
+# ==============================
+# Jalankan container baru
 # ==============================
 echo "[+] Menjalankan Portainer Agent versi $LATEST_VERSION..."
 
@@ -73,7 +101,7 @@ docker run -d \
   $IMAGE_NAME:$LATEST_VERSION
 
 if [ $? -ne 0 ]; then
-    echo "[!] Container gagal dijalankan!"
+    echo "[!] Gagal menjalankan container baru!"
     exit 1
 fi
 
