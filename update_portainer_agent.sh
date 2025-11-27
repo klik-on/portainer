@@ -4,18 +4,18 @@ CONTAINER_NAME="portainer_agent"
 IMAGE_NAME="portainer/agent"
 
 echo "====================================="
-echo "     AUTO UPDATE PORTAINER AGENT"
+echo "   AUTO UPDATE PORTAINER AGENT (FIX)"
 echo "====================================="
 
 # ==============================
-#  Ambil versi terbaru dari Docker Hub
+#  Ambil versi terbaru (paginate-safe)
 # ==============================
 echo "[+] Mengambil versi terbaru dari Docker Hub..."
 
-LATEST_VERSION=$(curl -s https://registry.hub.docker.com/v2/repositories/$IMAGE_NAME/tags \
+LATEST_VERSION=$(curl -s "https://registry.hub.docker.com/v2/repositories/$IMAGE_NAME/tags?page_size=100" \
   | grep '"name"' \
-  | grep -v "latest" \
-  | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' \
+  | grep -Eo '"[0-9]+\.[0-9]+\.[0-9]+"' \
+  | tr -d '"' \
   | sort -V \
   | tail -1)
 
@@ -24,43 +24,42 @@ if [ -z "$LATEST_VERSION" ]; then
     exit 1
 fi
 
-echo "[+] Versi terbaru ditemukan: $LATEST_VERSION"
+echo "[+] Versi terbaru: $LATEST_VERSION"
 
 # ==============================
-#  Ambil versi yang sedang dipakai
+# Ambil versi yang sedang dipakai
 # ==============================
-CURRENT_VERSION=$(docker ps --format '{{.Image}}' | grep $IMAGE_NAME | awk -F ":" '{print $2}')
+CURRENT_VERSION=$(docker inspect -f '{{.Config.Image}}' $CONTAINER_NAME 2>/dev/null | awk -F ":" '{print $2}')
 
 echo "[+] Versi saat ini: ${CURRENT_VERSION:-Tidak ditemukan}"
 
 if [ "$CURRENT_VERSION" == "$LATEST_VERSION" ]; then
-    echo "[✓] Sudah menggunakan versi terbaru. Tidak perlu update."
+    echo "[✓] Sudah versi terbaru."
     exit 0
 fi
 
 # ==============================
-#  Hentikan container jika ada
+# Ambil environment lama (AGENT_SECRET dll)
 # ==============================
-if docker ps -a | grep -q "$CONTAINER_NAME"; then
+ENV_OPTS=$(docker inspect -f '{{range .Config.Env}}{{printf "-e %q " .}}{{end}}' $CONTAINER_NAME 2>/dev/null)
+
+# ==============================
+# Stop container lama
+# ==============================
+if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
     echo "[+] Menghentikan container lama..."
     docker stop $CONTAINER_NAME
     docker rm $CONTAINER_NAME
-else
-    echo "[!] Container lama tidak ditemukan. Lewati."
 fi
 
 # ==============================
-#  Hapus versi lama jika ada
+# Pull versi terbaru
 # ==============================
-if docker images | grep -q "$IMAGE_NAME"; then
-    echo "[+] Menghapus image versi lama..."
-    docker rmi $(docker images $IMAGE_NAME -q)
-else
-    echo "[!] Image lama tidak ada. Lewati."
-fi
+echo "[+] Download image baru..."
+docker pull $IMAGE_NAME:$LATEST_VERSION
 
 # ==============================
-#  Jalankan versi terbaru
+# Jalankan Portainer Agent
 # ==============================
 echo "[+] Menjalankan Portainer Agent versi $LATEST_VERSION..."
 
@@ -70,10 +69,14 @@ docker run -d \
   --restart=always \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v /var/lib/docker/volumes:/var/lib/docker/volumes \
+  $ENV_OPTS \
   $IMAGE_NAME:$LATEST_VERSION
 
-echo ""
+if [ $? -ne 0 ]; then
+    echo "[!] Container gagal dijalankan!"
+    exit 1
+fi
+
 echo "====================================="
-echo "   UPDATE SELESAI!"
-echo "   Portainer Agent sekarang versi $LATEST_VERSION"
+echo "   UPDATE SELESAI! Versi: $LATEST_VERSION"
 echo "====================================="
