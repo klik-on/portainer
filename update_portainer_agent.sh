@@ -8,14 +8,16 @@ echo "   AUTO UPDATE PORTAINER AGENT  "
 echo "================================="
 
 # ==============================
-# Ambil versi terbaru
+# Ambil versi terbaru (Filter diperbaiki)
 # ==============================
 echo "[+] Mengambil versi terbaru dari Docker Hub..."
 
+# Menggunakan grep untuk pola angka x.y.z dan cut untuk mengambil nilainya saja
 LATEST_VERSION=$(curl -s "https://registry.hub.docker.com/v2/repositories/$IMAGE_NAME/tags?page_size=100" \
   | grep -Eo '"name":"[0-9]+\.[0-9]+\.[0-9]+"' \
-  | head -1 \
-  | awk -F'."' '{print $3}')
+  | sort -V \
+  | tail -1 \
+  | cut -d'"' -f4)
 
 if [ -z "$LATEST_VERSION" ]; then
     echo "[!] Gagal mengambil versi terbaru. Update dibatalkan."
@@ -27,52 +29,43 @@ echo "[+] Versi terbaru: $LATEST_VERSION"
 # ==============================
 # Ambil versi yang sedang berjalan
 # ==============================
-CURRENT_VERSION=$(docker inspect -f '{{.Config.Image}}' $CONTAINER_NAME 2>/dev/null | awk -F ":" '{print $2}')
-
-echo "[+] Versi saat ini: ${CURRENT_VERSION:-Tidak ditemukan}"
+if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
+    CURRENT_VERSION=$(docker inspect -f '{{.Config.Image}}' $CONTAINER_NAME 2>/dev/null | awk -F ":" '{print $2}')
+    echo "[+] Versi saat ini: $CURRENT_VERSION"
+else
+    echo "[!] Container $CONTAINER_NAME tidak ditemukan. Akan melakukan instalasi baru."
+    CURRENT_VERSION="none"
+fi
 
 if [ "$CURRENT_VERSION" == "$LATEST_VERSION" ]; then
-    echo "[✓] Sudah versi terbaru. Menghapus image lama..."
-
-    OLD_IMAGES=$(docker images $IMAGE_NAME --format "{{.ID}} {{.Tag}}" \
-      | grep -v "$LATEST_VERSION" \
-      | awk '{print $1}')
-
-    if [ -z "$OLD_IMAGES" ]; then
-        echo "[✓] Tidak ada image lama."
-    else
-        echo "$OLD_IMAGES" | xargs -r docker rmi -f
-        echo "[✓] Image lama berhasil dibersihkan."
-    fi
-
+    echo "[✓] Sudah versi terbaru ($LATEST_VERSION)."
     exit 0
 fi
 
 # ==============================
-# Simpan environment lama
+# Simpan environment lama (jika ada)
 # ==============================
-ENV_OPTS=$(docker inspect -f '{{range .Config.Env}}{{printf "-e %q " .}}{{end}}' $CONTAINER_NAME 2>/dev/null)
+ENV_OPTS=""
+if [ "$CURRENT_VERSION" != "none" ]; then
+    ENV_OPTS=$(docker inspect -f '{{range .Config.Env}}{{printf "-e %q " .}}{{end}}' $CONTAINER_NAME 2>/dev/null)
+fi
 
 # ==============================
-# Hentikan container lama
+# Hentikan & Hapus container lama
 # ==============================
-if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
-    echo "[+] Menghentikan container lama..."
+if [ "$CURRENT_VERSION" != "none" ]; then
+    echo "[+] Menghentikan dan menghapus container lama..."
     docker stop $CONTAINER_NAME
     docker rm $CONTAINER_NAME
 fi
 
 # ==============================
-# Download versi terbaru
+# Pull & Jalankan versi terbaru
 # ==============================
-echo "[+] Pull image baru..."
+echo "[+] Pulling $IMAGE_NAME:$LATEST_VERSION..."
 docker pull $IMAGE_NAME:$LATEST_VERSION
 
-# ==============================
-# Jalankan container baru
-# ==============================
 echo "[+] Menjalankan Portainer Agent versi $LATEST_VERSION..."
-
 docker run -d \
   -p 9001:9001 \
   --name $CONTAINER_NAME \
@@ -82,19 +75,19 @@ docker run -d \
   $ENV_OPTS \
   $IMAGE_NAME:$LATEST_VERSION
 
-# ==============================
-# Hapus image lama (Setelah container baru jalan)
-# ==============================
-echo "[+] Menghapus image versi lama..."
-OLD_IMAGES=$(docker images $IMAGE_NAME --format "{{.ID}} {{.Tag}}" \
-  | grep -v "$LATEST_VERSION" \
-  | awk '{print $1}')
-
-if [ ! -z "$OLD_IMAGES" ]; then
-    echo "$OLD_IMAGES" | xargs -r docker rmi -f
-    echo "[✓] Image lama berhasil dihapus."
+if [ $? -eq 0 ]; then
+    # ==============================
+    # Bersihkan image lama
+    # ==============================
+    echo "[+] Membersihkan image lama..."
+    docker image prune -f --filter "label=io.portainer.agent=true" > /dev/null 2>&1
+    # Pembersihan manual tambahan
+    docker images $IMAGE_NAME --format "{{.ID}} {{.Tag}}" | grep -v "$LATEST_VERSION" | awk '{print $1}' | xargs -r docker rmi -f > /dev/null 2>&1
+    
+    echo "====================================="
+    echo "   UPDATE BERHASIL! Versi: $LATEST_VERSION"
+    echo "====================================="
+else
+    echo "[!] Terjadi kesalahan saat menjalankan container baru."
+    exit 1
 fi
-
-echo "====================================="
-echo "   UPDATE SELESAI! Versi: $LATEST_VERSION"
-echo "====================================="
