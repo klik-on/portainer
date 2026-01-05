@@ -168,6 +168,11 @@ docker run -d \
   -v /var/lib/docker/volumes:/var/lib/docker/volumes \
   portainer/agent:2.33.5
 
+# atau 
+# wget https://raw.githubusercontent.com/klik-on/portainer/refs/heads/main/update_portainer_agent.sh
+# chmod +x update_portainer_agent.sh
+# sudo ./update_portainer_agent.sh
+
 Di Portainer Utama:
    Login ke antarmuka Portainer.
    Pergi ke menu Environments di sidebar kiri.
